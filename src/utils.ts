@@ -10,6 +10,7 @@ import type {
   SkipOption,
   Options,
   Nullable,
+  LaunchType,
 } from '../types/global'
 import {
   CHROMIUM,
@@ -124,11 +125,28 @@ export const getDeviceBrowserType = (
   return device?.defaultBrowserType || null
 }
 
-export const getPlaywrightInstance = (
-  browserName?: BrowserType,
-): Playwright => {
+export const getPlaywrightInstance = async (
+  browserName?: undefined | BrowserType,
+  config?: Partial<JestPlaywrightConfig>,
+): Promise<Playwright> => {
   let pw
   let name: PlaywrightRequireType
+  if (
+    config &&
+    config.launchType === 'PLAYWRIGHT_CLIENT' &&
+    config.playwrightClientEndpointUrl
+  ) {
+    const service = await getPlaywrightClientService(
+      config.playwrightClientEndpointUrl,
+    )
+    const instance = service.playwright()
+    return {
+      name: 'playwright',
+      instance: instance[browserName!],
+      service,
+      devices: instance.devices,
+    }
+  }
   if (!browserName) {
     pw = require(IMPORT_KIND_PLAYWRIGHT)
     name = IMPORT_KIND_PLAYWRIGHT
@@ -161,6 +179,15 @@ export const getPlaywrightInstance = (
     instance: pw[browserName],
     devices: pw['devices'],
   }
+}
+
+export async function getPlaywrightClientService(
+  endpointUrl: string,
+): Promise<any> {
+  const {
+    PlaywrightClient,
+  } = require('playwright-core/lib/remote/playwrightClient')
+  return await PlaywrightClient.connect(endpointUrl)
 }
 
 export function getBrowserOptions<T>(

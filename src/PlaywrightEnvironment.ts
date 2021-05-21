@@ -25,6 +25,7 @@ import {
   IMPORT_KIND_PLAYWRIGHT,
   PERSISTENT,
   LAUNCH,
+  PLAYWRIGHT_CLIENT,
 } from './constants'
 import {
   checkDevice,
@@ -48,7 +49,11 @@ const getBrowserPerProcess = async (
 ): Promise<Browser | BrowserContext> => {
   const { launchType, userDataDir, launchOptions, connectOptions } = config
 
-  if (launchType === LAUNCH || launchType === PERSISTENT) {
+  if (
+    launchType === LAUNCH ||
+    launchType === PERSISTENT ||
+    launchType === PLAYWRIGHT_CLIENT
+  ) {
     // https://github.com/mmarkelov/jest-playwright/issues/42#issuecomment-589170220
     if (browserType !== CHROMIUM && launchOptions?.args) {
       launchOptions.args = launchOptions.args.filter(
@@ -58,7 +63,7 @@ const getBrowserPerProcess = async (
 
     const options = getBrowserOptions(browserType, launchOptions)
 
-    if (launchType === LAUNCH) {
+    if (launchType === LAUNCH || launchType === PLAYWRIGHT_CLIENT) {
       return playwrightInstance.launch(options)
     }
 
@@ -220,6 +225,7 @@ export const getPlaywrightEnv = (basicEnv = 'node'): unknown => {
         selectors,
         launchType,
         skipInitialization,
+        playwrightClientEndpointUrl,
       } = this._jestPlaywrightConfig
       if (wsEndpoint) {
         this._jestPlaywrightConfig.connectOptions = {
@@ -234,7 +240,8 @@ export const getPlaywrightEnv = (basicEnv = 'node'): unknown => {
         name,
         instance: playwrightInstance,
         devices,
-      } = getPlaywrightInstance(browserType)
+        service,
+      } = await getPlaywrightInstance(browserType, this._jestPlaywrightConfig)
       const contextOptions = this._getContextOptions(devices)
 
       if (name === IMPORT_KIND_PLAYWRIGHT && selectors) {
@@ -260,6 +267,7 @@ export const getPlaywrightEnv = (basicEnv = 'node'): unknown => {
           browserType,
           this._jestPlaywrightConfig,
         )
+        this.global.service = service
         this.global.browser =
           launchType === PERSISTENT ? null : browserOrContext
         this.global.context =
@@ -292,12 +300,18 @@ export const getPlaywrightEnv = (basicEnv = 'node'): unknown => {
               browserName,
               devices,
             )
-          const { instance } = getPlaywrightInstance(browserName)
+          const { instance, service: newInstanceService } =
+            await getPlaywrightInstance(browserName, this._jestPlaywrightConfig)
           const browser = await getBrowserPerProcess(
             instance as GenericBrowser,
             browserName,
             resultBrowserConfig,
           )
+          if (launchType && [PLAYWRIGHT_CLIENT, LAUNCH].includes(launchType)) {
+            ;(browser as Browser).on('disconnected', () =>
+              newInstanceService.close(),
+            )
+          }
           const context = await (browser as Browser)!.newContext(
             resultContextOptions,
           )
@@ -351,9 +365,12 @@ export const getPlaywrightEnv = (basicEnv = 'node'): unknown => {
       const { browserName } = this._config
       const { collectCoverage, haveSkippedTests } = this._jestPlaywrightConfig
       const browserType = getBrowserType(browserName)
-      const { instance, devices } = getPlaywrightInstance(browserType)
-      const contextOptions = this._getContextOptions(devices)
       if (haveSkippedTests && event.name === 'test_fn_start') {
+        const { instance, devices } = await getPlaywrightInstance(
+          browserType,
+          this._jestPlaywrightConfig,
+        )
+        const contextOptions = this._getContextOptions(devices)
         this.global.browser = await getBrowserPerProcess(
           instance as GenericBrowser,
           browserType,
@@ -370,7 +387,7 @@ export const getPlaywrightEnv = (basicEnv = 'node'): unknown => {
     }
 
     async teardown(): Promise<void> {
-      const { browser, context, page } = this.global
+      const { browser, context, page, service } = this.global
       const { collectCoverage } = this._jestPlaywrightConfig
       page?.removeListener('pageerror', handleError)
       if (collectCoverage) {
@@ -386,6 +403,7 @@ export const getPlaywrightEnv = (basicEnv = 'node'): unknown => {
       }
 
       await browser?.close()
+      await service?.close()
 
       await super.teardown()
     }

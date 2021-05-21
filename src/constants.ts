@@ -10,6 +10,7 @@ export const WEBKIT = 'webkit'
 
 export const LAUNCH = 'LAUNCH'
 export const PERSISTENT = 'PERSISTENT'
+export const PLAYWRIGHT_CLIENT = 'PLAYWRIGHT_CLIENT'
 export const SERVER = 'SERVER'
 
 export const DEFAULT_CONFIG: JestPlaywrightConfig = {

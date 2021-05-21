@@ -371,7 +371,7 @@ describe('getPlaywrightInstance', () => {
       chromium: 'chromium',
     }))
 
-    const { instance } = getPlaywrightInstance()
+    const { instance } = await getPlaywrightInstance()
     expect(instance).toEqual({
       firefox: 'firefox',
       chromium: 'chromium',
@@ -384,27 +384,27 @@ describe('getPlaywrightInstance', () => {
       chromium: 'chromium',
     }))
 
-    const { instance } = getPlaywrightInstance('firefox')
+    const { instance } = await getPlaywrightInstance('firefox', {})
     expect(instance).toEqual('firefox')
   })
 
-  it('should return specified instance from specified playwright package', () => {
+  it('should return specified instance from specified playwright package', async () => {
     jest.doMock('playwright-chromium', () => ({
       chromium: 'chromium',
     }))
 
-    const { instance } = getPlaywrightInstance('chromium')
+    const { instance } = await getPlaywrightInstance('chromium', {})
     expect(instance).toEqual('chromium')
   })
 
-  it('should throw error when playwright package is not provided', () => {
+  it('should throw error when playwright package is not provided', async () => {
     jest.doMock('playwright', () => ({
       chromium: 'chromium',
     }))
 
-    const getMissedPlaywrightInstance = () => getPlaywrightInstance('firefox')
+    const getMissedPlaywrightInstance = () => getPlaywrightInstance('firefox', {})
 
-    expect(getMissedPlaywrightInstance).toThrowError(
+    await expect(getMissedPlaywrightInstance()).rejects.toThrowError(
       'jest-playwright-preset: Cannot find playwright package to use firefox',
     )
   })

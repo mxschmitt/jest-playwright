@@ -25,6 +25,7 @@ declare const WEBKIT = 'webkit'
 
 declare const LAUNCH = 'LAUNCH'
 declare const PERSISTENT = 'PERSISTENT'
+declare const PLAYWRIGHT_CLIENT = 'PLAYWRIGHT_CLIENT'
 declare const SERVER = 'SERVER'
 
 declare module 'jest-playwright-preset' {
@@ -185,10 +186,15 @@ export type PlaywrightRequireType = BrowserType | typeof IMPORT_KIND_PLAYWRIGHT
 export interface Playwright {
   name: PlaywrightRequireType
   instance: GenericBrowser | Record<BrowserType, GenericBrowser>
+  service?: any,
   devices: typeof devices
 }
 
-type LaunchType = typeof LAUNCH | typeof SERVER | typeof PERSISTENT
+type LaunchType =
+  | typeof LAUNCH
+  | typeof SERVER
+  | typeof PERSISTENT
+  | typeof PLAYWRIGHT_CLIENT
 
 type Options<T> = T & Partial<Record<BrowserType, T>>
 
@@ -202,6 +208,7 @@ export interface JestPlaywrightConfig {
   haveSkippedTests?: boolean
   skipInitialization?: boolean
   debugOptions?: JestPlaywrightConfig
+  playwrightClientEndpointUrl?: string
   launchType?: LaunchType
   launchOptions?: Options<LaunchOptions>
   connectOptions?: Options<ConnectOptions>

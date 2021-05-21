@@ -149,8 +149,11 @@ class PlaywrightRunner extends JestRunner {
             ? config
             : deepMerge(config, browser || {})
         checkBrowserEnv(browserType)
-        const { devices: availableDevices, instance } =
-          getPlaywrightInstance(browserType)
+        const {
+          devices: availableDevices,
+          instance,
+          service,
+        } = await getPlaywrightInstance(browserType, config)
         const resultDevices = getDevices(devices, availableDevices)
         const key =
           typeof browser === 'string'
@@ -186,6 +189,7 @@ class PlaywrightRunner extends JestRunner {
         } else {
           pwTests.push(getBrowserTest({ ...browserTest, device: null }))
         }
+        await service?.close()
       }
     }
 
