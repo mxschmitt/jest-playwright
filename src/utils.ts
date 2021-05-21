@@ -137,7 +137,7 @@ export const getPlaywrightInstance = async (
     config.playwrightClientEndpointUrl
   ) {
     const service = await getPlaywrightClientService(
-      config.playwrightClientEndpointUrl,
+      await config.playwrightClientEndpointUrl(),
     )
     const instance = service.playwright()
     return {

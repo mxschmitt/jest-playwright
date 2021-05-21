@@ -208,7 +208,7 @@ export interface JestPlaywrightConfig {
   haveSkippedTests?: boolean
   skipInitialization?: boolean
   debugOptions?: JestPlaywrightConfig
-  playwrightClientEndpointUrl?: string
+  playwrightClientEndpointUrl?(): Promise<string>
   launchType?: LaunchType
   launchOptions?: Options<LaunchOptions>
   connectOptions?: Options<ConnectOptions>
